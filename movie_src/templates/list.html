@@ -30,7 +30,7 @@
             Ngày: {{ story.created_at.strftime('%d/%m/%Y') }}
             |
             Loại: <a href="{{ url_for('type_view', story_type=story.story_type) }}">
-              {{ 'Truyện Ngắn' if story.story_type == 'short' else 'Truyện Dài' }}
+              {{ 'Phim Ngắn' if story.story_type == 'short' else 'Phim Dài' }}
             </a>
           </p>
           {% if story.categories %}
@@ -55,11 +55,11 @@
           {% set total_parts = story.parts|length %}
           {% if story.is_completed %}
             <p class="status-message completed-status">
-              Truyện đã hoàn thành (<em class="completed">{{ total_parts }} chương</em>)
+              Phim đã hoàn thành (<em class="completed">{{ total_parts }} phần</em>)
             </p>
           {% else %}
             <p class="status-message updating-status">
-              Truyện chưa hoàn thành (<em class="updating">Cập nhật đến chương {{ total_parts }}</em>)
+              Phim chưa hoàn thành (<em class="updating">Cập nhật đến phần {{ total_parts }}</em>)
             </p>
           {% endif %}
           {# Trích đoạn: cắt ở 200 ký tự và không cắt giữa từ #}
@@ -76,16 +76,22 @@
     </ul>
     {% if pagination %}
       <div class="pagination">
+        {% if first_url %}
+          <a href="{{ first_url }}">&laquo;&laquo; Trang đầu</a>
+        {% endif %}
         {% if prev_url %}
           <a href="{{ prev_url }}">&laquo; Trang trước</a>
         {% endif %}
         {% if next_url %}
-          <a href="{{ next_url }}">Trang tiếp theo &raquo;</a>
+          <a href="{{ next_url }}">Trang sau &raquo;</a>
+        {% endif %}
+        {% if last_url %}
+          <a href="{{ last_url }}">Trang cuối &raquo;&raquo;</a>
         {% endif %}
       </div>
     {% endif %}
   {% else %}
-    <p>Không có truyện nào.</p>
+    <p>Không có phim nào.</p>
   {% endif %}
 </div>
 {% endblock %}
