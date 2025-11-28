@@ -1,0 +1,193 @@
+{% extends "layout.html" %}
+
+{% block title %}Đăng phim mới{% endblock %}
+
+{% block content %}
+<h2>Đăng phim mới</h2>
+{% if error %}
+  <p class="error">{{ error }}</p>
+{% endif %}
+<form method="post">
+  <input type="hidden" name="existing_story_id" value="">
+  <div class="form-group">
+    <label for="password">Password:</label><br>
+    <input type="password" id="password" name="password" required>
+  </div>
+  <div class="form-group">
+    <label for="title">Tên phim:</label><br>
+    <input type="text" id="title" name="title" required>
+  </div>
+  <div class="form-group">
+    <label for="author">Tác giả (tuỳ chọn):</label><br>
+    <input type="text" id="author" name="author">
+  </div>
+  <div class="form-group">
+    <label for="story_type">Loại phim:</label><br>
+    <select id="story_type" name="story_type" required>
+      <option value="short">Phim Ngắn</option>
+      <option value="long">Phim Dài</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label>
+      <input type="checkbox" id="is_completed" name="is_completed">
+      Đánh dấu phim đã hoàn thành
+    </label>
+  </div>
+  <div class="form-group">
+    <label>Thể loại (có thể chọn nhiều):</label><br>
+    {% if categories %}
+      {% for cat in categories %}
+        <label>
+          <input type="checkbox" name="category_ids" value="{{ cat.id }}">
+          {{ cat.name }}
+        </label><br>
+      {% endfor %}
+      <a href="{{ url_for('add_category') }}">Thêm thể loại</a>
+    {% else %}
+      <em>Chưa có thể loại nào.</em> <a href="{{ url_for('add_category') }}">Thêm thể loại</a>
+    {% endif %}
+  </div>
+  <div class="form-group">
+    <label for="content">Nội dung phần đầu tiên:</label><br>
+    <textarea id="content" name="content" rows="45" cols="80" required></textarea>
+  </div>
+  {# Thêm trường nhập video cho phần đầu tiên #}
+  <div class="form-group">
+    <label>Video phần đầu (tối đa 9):</label><br>
+    <div class="video-grid">
+      {% for i in range(9) %}
+      <div class="video-item">
+        <input type="url" name="video_urls" id="video_{{ i }}" class="video-input" data-preview="preview_{{ i }}" placeholder="URL video Google Drive">
+        <iframe id="preview_{{ i }}" src="" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="form-group">
+    <button type="submit" name="action" value="create">Tạo phim</button>
+  </div>
+</form>
+
+<!-- Xuất/Nhập dữ liệu -->
+<h3>Xuất / Nhập dữ liệu</h3>
+<form method="post" action="{{ url_for('export_data') }}" class="export-form">
+  <label for="export_password">Password:</label><br>
+  <input type="password" id="export_password" name="password" required><br>
+  <button type="submit">Export dữ liệu</button>
+</form>
+<form method="post" action="{{ url_for('import_data') }}" enctype="multipart/form-data" class="import-form">
+  <input type="file" name="import_file" required>
+  <br>
+  <label for="import_password">Password:</label><br>
+  <input type="password" id="import_password" name="password" required>
+  <br>
+  <button type="submit">Import dữ liệu</button>
+</form>
+
+<!-- Xoá toàn bộ phim -->
+<h3>Xoá toàn bộ phim</h3>
+<form method="post" action="{{ url_for('delete_all_stories') }}" class="delete-all-form" onsubmit="return confirmDeleteAll();">
+  <div class="form-group">
+    <label for="password1">Password:</label><br>
+    <input type="password" id="password1" name="password1" required>
+  </div>
+  <div class="form-group">
+    <label for="password2">Nhập lại Password:</label><br>
+    <input type="password" id="password2" name="password2" required>
+  </div>
+  <div class="form-group">
+    <button type="submit">Xoá toàn bộ phim</button>
+  </div>
+</form>
+
+<script>
+// Hàm xác nhận xoá toàn bộ dữ liệu. Kiểm tra hai mật khẩu khớp nhau rồi yêu cầu hai lần xác nhận người dùng.
+function confirmDeleteAll() {
+  var pw1 = document.getElementById('password1').value;
+  var pw2 = document.getElementById('password2').value;
+  if (pw1 !== pw2) {
+    alert('Hai mật khẩu phải giống nhau.');
+    return false;
+  }
+  // Xác nhận đầu tiên
+  if (!confirm('Bạn có chắc chắn muốn xoá toàn bộ phim?')) {
+    return false;
+  }
+  // Xác nhận thứ hai
+  return confirm('Bạn thực sự muốn xoá? Thao tác này không thể hoàn tác!');
+}
+</script>
+
+<h3>Hoặc chỉnh sửa phim đã có</h3>
+<!-- Form tìm kiếm truyện để dễ tìm trong danh sách lớn -->
+<form method="get" class="search-existing-form">
+  <input type="text" name="q" placeholder="Tìm kiếm..." value="{{ q|default('') }}">
+  <select name="stype">
+    <option value="title" {% if stype == 'title' %}selected{% endif %}>Tên phim</option>
+    <option value="content" {% if stype == 'content' %}selected{% endif %}>Nội dung</option>
+  </select>
+  <button type="submit">Tìm</button>
+</form>
+{% if stories %}
+  <ul class="existing-stories">
+    {% for st in stories %}
+      <li>
+        <a href="{{ url_for('upload', story_id=st.id) }}">{{ st.title }}{% if st.author %} - {{ st.author }}{% endif %}</a>
+        <p class="existing-snippet">
+          {% if stype == 'content' and highlight_snippets and highlight_snippets.get(st.id) %}
+            {{ highlight_snippets.get(st.id)|safe }}
+          {% else %}
+            {# Hiển thị đoạn trích chương đầu tiên, tránh cắt chữ #}
+            {% set first_part = st.parts[0] %}
+            {% set snippet = first_part.content[:200] %}
+            {{ snippet.rsplit(' ', 1)[0] }}{% if first_part.content|length > 200 %}...{% endif %}
+          {% endif %}
+        </p>
+      </li>
+    {% endfor %}
+  </ul>
+  {% if pagination and pagination.pages > 1 %}
+    <div class="pagination">
+      {% if pagination.page > 1 %}
+        <a href="{{ url_for('upload', page=1, q=q) }}">&laquo; Đầu</a>
+        <a href="{{ url_for('upload', page=pagination.prev_num, q=q) }}">&lsaquo; Trước</a>
+      {% endif %}
+      <span>Trang {{ pagination.page }} / {{ pagination.pages }}</span>
+      {% if pagination.page < pagination.pages %}
+        <a href="{{ url_for('upload', page=pagination.next_num, q=q) }}">Sau &rsaquo;</a>
+        <a href="{{ url_for('upload', page=pagination.pages, q=q) }}">Cuối &raquo;</a>
+      {% endif %}
+    </div>
+  {% endif %}
+{% else %}
+  <p>Chưa có phim nào.</p>
+{% endif %}
+{# Script cập nhật xem trước video ở trang tạo truyện #}
+<script>
+function getDrivePreview(url) {
+  var match = url.match(/\/file\/d\/([\w-]+)/);
+  if (!match) {
+    match = url.match(/id=([\w-]+)/);
+  }
+  if (match) {
+    return 'https://drive.google.com/file/d/' + match[1] + '/preview';
+  }
+  return '';
+}
+document.addEventListener('DOMContentLoaded', function() {
+  var inputs = document.querySelectorAll('.video-input');
+  inputs.forEach(function(input) {
+    input.addEventListener('input', function() {
+      var previewId = input.getAttribute('data-preview');
+      var embedUrl = getDrivePreview(input.value);
+      var iframe = document.getElementById(previewId);
+      if (iframe) {
+        iframe.src = embedUrl;
+      }
+    });
+  });
+});
+</script>
+
+{% endblock %}
