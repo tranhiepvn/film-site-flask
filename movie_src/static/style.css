@@ -60,6 +60,23 @@ aside.sidebar a:hover {
   text-decoration: underline;
 }
 
+/* Khoảng trắng giữa các nhóm thể loại trong sidebar */
+aside.sidebar li.group-separator {
+  list-style: none;
+  margin: 0.7em 0;
+  height: 0;
+}
+
+/* Màu sắc đặc biệt cho các thể loại đầu tiên và chữ hoa */
+aside.sidebar li.special-cat > a {
+  color: #c89a00; /* vàng đậm */
+  font-weight: bold;
+}
+aside.sidebar li.uppercase-cat > a {
+  color: #006400; /* xanh lá cây đậm */
+  font-weight: bold;
+}
+
 /* Section hiển thị phim theo các thể loại được chọn ở trang chính */
 .selected-categories {
   margin-bottom: 2em;

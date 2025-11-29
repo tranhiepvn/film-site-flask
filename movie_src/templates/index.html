@@ -339,6 +339,4 @@
 
 {# Khối scripts dành riêng cho trang phim để xử lý chọn nhiều thể loại #}
 {# Override scripts block to include parent scripts (for multi-category functionality) #}
-{% block scripts %}
-  {{ super() }}
-{% endblock %}
+{# Không cần override block scripts ở trang chủ để script trong layout hoạt động #}

@@ -30,7 +30,28 @@
           <aside class="sidebar">
             <h3>Thể loại</h3>
             <ul class="category-list">
-              {% for cat in categories %}
+              {# Nhóm 1: các thể loại đặc biệt xuất hiện đầu tiên #}
+              {% for cat in categories_group1 %}
+                <li class="special-cat">
+                  <input type="checkbox" id="cat_checkbox_{{ cat.id }}" data-cat-id="{{ cat.id }}" data-cat-name="{{ cat.name }}">
+                  <a href="{{ url_for('category_view', category_id=cat.id) }}">{{ cat.name }}</a>
+                </li>
+              {% endfor %}
+              {% if categories_group1 and categories_group2 %}
+                <li class="group-separator"></li>
+              {% endif %}
+              {# Nhóm 2: các thể loại bắt đầu bằng ký tự hoa #}
+              {% for cat in categories_group2 %}
+                <li class="uppercase-cat">
+                  <input type="checkbox" id="cat_checkbox_{{ cat.id }}" data-cat-id="{{ cat.id }}" data-cat-name="{{ cat.name }}">
+                  <a href="{{ url_for('category_view', category_id=cat.id) }}">{{ cat.name }}</a>
+                </li>
+              {% endfor %}
+              {% if categories_group2 and categories_group3 %}
+                <li class="group-separator"></li>
+              {% endif %}
+              {# Nhóm 3: các thể loại còn lại #}
+              {% for cat in categories_group3 %}
                 <li>
                   <input type="checkbox" id="cat_checkbox_{{ cat.id }}" data-cat-id="{{ cat.id }}" data-cat-name="{{ cat.name }}">
                   <a href="{{ url_for('category_view', category_id=cat.id) }}">{{ cat.name }}</a>

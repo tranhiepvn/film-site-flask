@@ -101,6 +101,50 @@ def drive_embed(url: str) -> str:
         return f"https://drive.google.com/file/d/{fid}/preview"
     return ""
 
+# Helper to sort categories into special order for film site
+def get_category_groups() -> tuple[list["Category"], list["Category"], list["Category"]]:
+    """
+    Return categories divided into three groups with a specific ordering for the film site:
+
+    - Group 1 (special): categories named "Phim Chỉ Có 1 Tập" or "Truyện Chỉ Có 1 Chương" and
+      categories named "Phim Có Nhiều Tập" or "Truyện Có Nhiều Chương".  These appear first.
+    - Group 2 (uppercase): categories whose name starts with an uppercase letter (A–Z),
+      excluding those already in group 1.
+    - Group 3 (lowercase/other): all remaining categories, sorted case-insensitively.
+
+    Each group is sorted alphabetically (case-insensitive) except group 1 which preserves
+    the order defined by the candidate lists.
+    """
+    cats = Category.query.all()
+    first_candidates_1 = ["Phim Chỉ Có 1 Tập", "Truyện Chỉ Có 1 Chương"]
+    first_candidates_2 = ["Phim Có Nhiều Tập", "Truyện Có Nhiều Chương"]
+    group1: list[Category] = []
+    group2: list[Category] = []
+    group3: list[Category] = []
+    for c in cats:
+        if c.name in first_candidates_1 or c.name in first_candidates_2:
+            group1.append(c)
+        else:
+            first_char = c.name[0] if c.name else ''
+            if first_char.isalpha() and first_char.isupper():
+                group2.append(c)
+            else:
+                group3.append(c)
+    group2 = sorted(group2, key=lambda c: c.name.lower())
+    group3 = sorted(group3, key=lambda c: c.name.lower())
+    return group1, group2, group3
+
+# Fallback function to return categories sorted alphabetically (case-insensitive).
+# This is used by routes that still reference get_sorted_categories().
+def get_sorted_categories() -> list["Category"]:
+    """
+    Return all categories sorted alphabetically (case-insensitive).
+
+    This fallback allows templates or routes that reference ``get_sorted_categories``
+    to continue working without raising ``NameError``.
+    """
+    return sorted(Category.query.all(), key=lambda c: c.name.lower())
+
 
 # Provide utilities (datetime, range, drive_embed) to all Jinja templates.
 @app.context_processor
@@ -114,7 +158,18 @@ def inject_utilities():
       * ``range``: built-in function for iterating a fixed number of times.
       * ``drive_embed``: convert a Google Drive link to an embeddable preview URL.
     """
-    return {"datetime": datetime, "range": range, "drive_embed": drive_embed}
+    # Inject category groups for templates so they don't need to be passed explicitly.
+    cat1, cat2, cat3 = get_category_groups()
+    return {
+        "datetime": datetime,
+        "range": range,
+        "drive_embed": drive_embed,
+        # Provide combined categories list for templates that rely on 'categories'
+        "categories": cat1 + cat2 + cat3,
+        "categories_group1": cat1,
+        "categories_group2": cat2,
+        "categories_group3": cat3,
+    }
 
 
 class Story(db.Model):
@@ -444,7 +499,7 @@ def index():
         .all()
     )
     # danh sách thể loại để hiển thị trong thanh bên
-    categories = Category.query.order_by(Category.name).all()
+    categories = get_sorted_categories()
     return render_template(
         "index.html",
         best=best,
@@ -522,7 +577,7 @@ def upload():
     UPLOAD_PASSWORD = os.environ.get("UPLOAD_PASSWORD", "secret")
 
     # Danh sách thể loại luôn cần cho các form
-    categories = Category.query.order_by(Category.name).all()
+    categories = get_sorted_categories()
     # Xử lý tham số tìm kiếm và phân trang cho danh sách truyện
     # (áp dụng khi hiển thị danh sách truyện để chỉnh sửa ở chế độ GET)
     page = request.args.get("page", 1, type=int)
@@ -868,7 +923,7 @@ def upload_login():
     hiển thị thông báo lỗi. Danh sách thể loại được truyền vào để hiện
     trong sidebar, giống như các trang khác.
     """
-    categories = Category.query.order_by(Category.name).all()
+    categories = get_sorted_categories()
     # Mật khẩu upload từ biến môi trường hoặc giá trị mặc định
     UPLOAD_PASSWORD = os.environ.get("UPLOAD_PASSWORD", "secret")
     if request.method == "POST":
@@ -1105,6 +1160,14 @@ def import_confirm():
         if key.startswith("decision_"):
             json_id = key.split("decision_", 1)[1]
             decisions[json_id] = value
+    # Xử lý tuỳ chọn áp dụng chung: skip_all hoặc overwrite_all
+    apply_all = request.form.get("apply_all", "none")
+    if apply_all == "skip_all":
+        for k in list(decisions.keys()):
+            decisions[k] = "skip"
+    elif apply_all == "overwrite_all":
+        for k in list(decisions.keys()):
+            decisions[k] = "overwrite"
     # Đọc lại dữ liệu từ file tạm
     BASE_DIR = os.path.abspath(os.path.dirname(__file__))
     DATA_DIR = os.path.abspath(os.path.join(BASE_DIR, os.pardir, "data"))
@@ -1407,7 +1470,7 @@ def category_view(category_id: int):
     )
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
     stories = pagination.items
-    categories = Category.query.order_by(Category.name).all()
+    categories = get_sorted_categories()
     first_url = url_for("category_view", category_id=category.id, page=1) if pagination.page > 1 else None
     prev_url = url_for("category_view", category_id=category.id, page=pagination.prev_num) if pagination.has_prev else None
     next_url = url_for("category_view", category_id=category.id, page=pagination.next_num) if pagination.has_next else None
@@ -1438,7 +1501,7 @@ def author_view(author: str):
     )
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
     stories = pagination.items
-    categories = Category.query.order_by(Category.name).all()
+    categories = get_sorted_categories()
     first_url = url_for("author_view", author=author, page=1) if pagination.page > 1 else None
     prev_url = url_for("author_view", author=author, page=pagination.prev_num) if pagination.has_prev else None
     next_url = url_for("author_view", author=author, page=pagination.next_num) if pagination.has_next else None
@@ -1471,7 +1534,7 @@ def type_view(story_type: str):
     )
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
     stories = pagination.items
-    categories = Category.query.order_by(Category.name).all()
+    categories = get_sorted_categories()
     # xác định tiêu đề tiếng Việt cho phim
     title_vi = "Phim Ngắn" if story_type == "short" else "Phim Dài"
     first_url = url_for("type_view", story_type=story_type, page=1) if pagination.page > 1 else None
@@ -1516,7 +1579,7 @@ def search():
             .order_by(Story.created_at.desc())
             .all()
         )
-    categories = Category.query.order_by(Category.name).all()
+    categories = get_sorted_categories()
     return render_template(
         "search.html",
         query=query,
@@ -1549,7 +1612,7 @@ def add_category():
     Cho phép tạo mới, cập nhật và xoá thể loại.
     Tất cả hành động đều yêu cầu mật khẩu upload giống như trang upload truyện.
     """
-    categories = Category.query.order_by(Category.name).all()
+    categories = get_sorted_categories()
     if request.method == "POST":
         UPLOAD_PASSWORD = os.environ.get("UPLOAD_PASSWORD", "secret")
         password = request.form.get("password", "")
