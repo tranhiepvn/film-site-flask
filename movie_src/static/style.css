@@ -290,14 +290,14 @@ button:hover {
 .video-section iframe {
   display: block;
   /* Center the iframe horizontally */
-  margin-left: auto;
+  margin-left: 0;
   margin-right: auto;
   /* retain top and bottom margins for spacing */
   margin-top: 1em;
   margin-bottom: 1em;
   /* tăng kích thước khung video để xem phim thoải mái hơn */
   height: 500px;
-  width: 80%;
+  width: 100%;
 }
 
 /* Thông báo flash (ví dụ như khi import dữ liệu thành công) */
