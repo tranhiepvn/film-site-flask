@@ -38,6 +38,21 @@ aside.sidebar {
   word-wrap: break-word;
 }
 
+/*
+ * Trên trang chi tiết phim (endpoint story_detail) chiều ngang của cột thể loại được thu
+ * gọn lại chỉ còn khoảng 30% của phần nội dung để tổng thể hài hòa hơn. Sử dụng flex
+ * cho giá trị cố định và width để đảm bảo sidebar không bị co giãn khi nội dung
+ * chính thay đổi. Thuộc tính box-sizing đảm bảo padding và border được tính
+ * trong width.
+ */
+body.story_detail aside.sidebar {
+  /* Tăng chiều ngang sidebar thêm ~20% so với chiều rộng hiện tại. Điều này giúp sidebar rộng hơn nhưng vẫn gọn gàng.
+     Nếu trước đây chúng ta thu hẹp xuống 21% của container thì giờ tăng thêm 20% tức 21% * 1.2 ≈ 25%. */
+  flex: 0 0 25%;
+  width: 25%;
+  box-sizing: border-box;
+}
+
 aside.sidebar h3 {
   margin-top: 0;
 }
@@ -701,4 +716,42 @@ footer {
   text-align: center;
   font-size: 0.8em;
   color: #666;
+}
+
+/* Comment notification section styling */
+.comment-notification {
+  margin-bottom: 2em;
+}
+.comment-notification ul {
+  list-style: none;
+  padding: 0;
+}
+.comment-notification li {
+  margin-bottom: 0.5em;
+}
+.comment-notification .button-row {
+  display: flex;
+  justify-content: center;
+  gap: 2em;
+  margin-top: 0.5em;
+  margin-bottom: 1em;
+}
+.comment-notification .button-row button {
+  padding: 0.4em 0.8em;
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.comment-notification .button-row button:hover {
+  background-color: #0056b3;
+}
+/* Comment list page spacing */
+.comment-list {
+  list-style: none;
+  padding: 0;
+}
+.comment-list li {
+  margin-bottom: 0.5em;
 }

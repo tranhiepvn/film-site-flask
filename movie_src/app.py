@@ -1447,6 +1447,54 @@ def delete_all_stories():
     return redirect(url_for("upload"))
 
 
+@app.route("/replace_prefix_all", methods=["POST"])
+def replace_prefix_all():
+    """
+    Thay thế cụm từ ở đầu dòng đầu tiên của tất cả các chương của tất cả phim.
+
+    Yêu cầu người dùng đã đăng nhập trang upload và cung cấp mật khẩu hợp lệ.
+    Form gửi cần các trường:
+      - find_prefix: cụm từ cần tìm ở đầu dòng.
+      - replace_prefix: cụm từ dùng để thay thế.
+      - password: mật khẩu xác thực.
+    Hàm sẽ kiểm tra password, duyệt qua tất cả các chương (Part) và nếu dòng
+    đầu tiên của nội dung chương bắt đầu bằng ``find_prefix`` thì thay thế
+    bằng ``replace_prefix``. Sau khi hoàn tất, hiển thị thông báo số chương đã
+    được cập nhật và chuyển hướng về trang upload.
+    """
+    # Chỉ cho phép sau khi đã đăng nhập trang upload
+    if not session.get("upload_authenticated"):
+        return redirect(url_for("upload_login"))
+    UPLOAD_PASSWORD = os.environ.get("UPLOAD_PASSWORD", "secret")
+    search_prefix = request.form.get("find_prefix", "").strip()
+    replacement = request.form.get("replace_prefix", "")
+    pw = request.form.get("password", "")
+    # xác thực password
+    if pw != UPLOAD_PASSWORD:
+        flash("Mật khẩu không hợp lệ.")
+        return redirect(url_for("upload"))
+    if not search_prefix:
+        flash("Bạn phải nhập cụm từ cần tìm.")
+        return redirect(url_for("upload"))
+    replaced_count = 0
+    parts = Part.query.all()
+    for part in parts:
+        lines = part.content.split('\n', 1)
+        if lines and lines[0].startswith(search_prefix):
+            new_first = replacement + lines[0][len(search_prefix):]
+            if len(lines) > 1:
+                part.content = new_first + '\n' + lines[1]
+            else:
+                part.content = new_first
+            replaced_count += 1
+    if replaced_count > 0:
+        db.session.commit()
+        flash(f"Đã thay '{search_prefix}' bằng '{replacement}' ở dòng đầu của {replaced_count} phần.")
+    else:
+        flash("Không tìm thấy cụm từ ở đầu dòng trong bất kỳ phần nào.")
+    return redirect(url_for("upload"))
+
+
 
 @app.route("/category/<int:category_id>")
 def category_view(category_id: int):
@@ -1790,3 +1838,62 @@ if __name__ == "__main__":
     create_tables()
     # Chạy ứng dụng khi chạy trực tiếp file này
     app.run(debug=True)
+
+@app.route("/skip_comments", methods=["POST"])
+def skip_comments():
+    # Mark comments as seen for movies
+    latest_comment_time = db.session.query(func.max(Comment.created_at)).scalar()
+    if latest_comment_time:
+        session['last_comment_seen_at_movies'] = latest_comment_time.isoformat()
+    return redirect(url_for("upload"))
+
+@app.context_processor
+def inject_comment_notifications():
+    def get_comment_notifications():
+        """
+        Return (show, commented) for movies. Only show movies with comments newer
+        than the last dismissed time; if no dismiss exists, show all commented movies.
+        """
+        latest_comment_time = db.session.query(func.max(Comment.created_at)).scalar()
+        show = False
+        commented = []
+        if latest_comment_time:
+            last_seen_str = session.get('last_comment_seen_at_movies')
+            try:
+                last_seen = datetime.fromisoformat(last_seen_str) if last_seen_str else None
+            except Exception:
+                last_seen = None
+            if last_seen:
+                commented = (
+                    db.session.query(Story)
+                    .join(Comment, Story.id == Comment.story_id)
+                    .filter(Comment.created_at > last_seen)
+                    .filter(Story.is_hidden == False)
+                    .distinct()
+                    .all()
+                )
+            else:
+                commented = (
+                    db.session.query(Story)
+                    .join(Comment, Story.id == Comment.story_id)
+                    .filter(Story.is_hidden == False)
+                    .distinct()
+                    .all()
+                )
+            if commented:
+                show = True
+        return show, commented
+    return {"get_comment_notifications": get_comment_notifications}
+
+
+@app.route("/view_all_comments")
+def view_all_comments():
+    """Render a page listing all movies with comments."""
+    commented = (
+        db.session.query(Story)
+        .join(Comment, Story.id == Comment.story_id)
+        .filter(Story.is_hidden == False)
+        .distinct()
+        .all()
+    )
+    return render_template("comments_list.html", commented_stories=commented)
