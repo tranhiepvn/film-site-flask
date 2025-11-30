@@ -90,26 +90,6 @@
 </form>
 
 <!-- Xuất/Nhập dữ liệu -->
-<!-- Thay thế cụm từ đầu dòng trong tất cả các phần của tất cả phim -->
-<h3>Tìm và thay cụm từ đầu phần</h3>
-<form method="post" action="{{ url_for('replace_prefix_all') }}" class="replace-form">
-  <div class="form-group">
-    <label for="find_prefix">Cụm từ cần tìm (đầu dòng):</label><br>
-    <input type="text" id="find_prefix" name="find_prefix" required>
-  </div>
-  <div class="form-group">
-    <label for="replace_prefix">Cụm từ thay thế:</label><br>
-    <input type="text" id="replace_prefix" name="replace_prefix" required>
-  </div>
-  <div class="form-group">
-    <label for="replace_password">Password:</label><br>
-    <input type="password" id="replace_password" name="password" required>
-  </div>
-  <div class="form-group">
-    <button type="submit">Thực hiện thay thế</button>
-  </div>
-</form>
-
 <h3>Xuất / Nhập dữ liệu</h3>
 <form method="post" action="{{ url_for('export_data') }}" class="export-form">
   <label for="export_password">Password:</label><br>

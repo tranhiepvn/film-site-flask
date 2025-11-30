@@ -45,13 +45,7 @@ aside.sidebar {
  * chính thay đổi. Thuộc tính box-sizing đảm bảo padding và border được tính
  * trong width.
  */
-body.story_detail aside.sidebar {
-  /* Tăng chiều ngang sidebar thêm ~20% so với chiều rộng hiện tại. Điều này giúp sidebar rộng hơn nhưng vẫn gọn gàng.
-     Nếu trước đây chúng ta thu hẹp xuống 21% của container thì giờ tăng thêm 20% tức 21% * 1.2 ≈ 25%. */
-  flex: 0 0 25%;
-  width: 25%;
-  box-sizing: border-box;
-}
+
 
 aside.sidebar h3 {
   margin-top: 0;
@@ -754,4 +748,19 @@ footer {
 }
 .comment-list li {
   margin-bottom: 0.5em;
+}
+
+/* ---------- Fixed sidebar widths as requested (film site) ---------- */
+/* On movie detail pages (endpoint story_detail), set the sidebar to 40% of the container width. */
+body.story_detail aside.sidebar {
+  width: 320px;
+  flex: 0 0 320px;
+  box-sizing: border-box;
+}
+
+/* On the upload page for the movie site, set the sidebar to 35% of the container width. */
+body.upload aside.sidebar {
+  width: 280px;
+  flex: 0 0 280px;
+  box-sizing: border-box;
 }
